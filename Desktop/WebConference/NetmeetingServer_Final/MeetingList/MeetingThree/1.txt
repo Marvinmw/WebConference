@@ -1,0 +1,121 @@
+push  	bx
+	     push	si                          ;清空cx
+	     push	di
+	     mov	dx, 0
+	     mov	ax, 0                       ;ax存储和，但暂时还没有被调用，所以先被当做
+	     mov	bx, 10                      ;一个普通的寄存器使用
+	     mov	si, 0                       ;si类似于数组下标，指示当前的位置
+_startReadCha:                                      ;从键盘上读取一个字符
+	     call	_readCha                    ;如果键盘上输入的是“enter”，那么就计算总和
+	     cmp	ax, 0
+	     je	_compute
+	     cmp	ax, 72                      ;判断读取的字符是否为‘H’
+	     je	_hexi
+	     push 	ax
+	     call	_chaToNum
+	     mov	[str + si], ax              ;将ax送给数组中下一个元素
+	     add	si, 2                       ;因为字的大小为2，所以si加2
+	     pop	ax 
+	     jmp	_startReadCha
+_hexi:
+	     mov	bx, 16
+	     jmp	_startReadCha	
+_compute:
+	     mov	cx, 0
+	     mov	ax, 0                      ;ax为和
+	     mov	di, 0                      ;di为数组中的当前位置
+_s:                                                ;次数为多项式的计算算法
+	     cmp	di, si
+	     je	_endReadNum
+	     mov	cx, [str + di]
+	     imul	bx
+	     add	ax, cx
+	     add	di, 2
+	     jmp	_s
+_endReadNum:
+	     pop	di
+	     pop	si
+	     pop	bx
+	     pop	bp
+	     ret
+
+_chaToNum:                                        ;把字符转化为数字
+	     push	bp
+	     mov	bp, sp
+	     mov	ax, [bp + 4]		
+	     cmp	ax, 65                    ;如果输入的字符小于‘A’，那么肯定是一
+	     jl	_number                           ;个数字
+	     sub	    ax, 65            
+	     add	ax, 10
+	     jmp	_endChaToNum
+_number:
+	     sub	    ax, 48
+_endChaToNum:
+	     pop	bp
+	     ret
+_readCha:
+	     push	bp
+	     mov	bp, sp                   ;从键盘上读取字符
+	     mov	ah, 0
+	     int	16H                      ;打印‘enter’ 
+	     cmp	ah,1ch
+	je	_enter                           ;将字符输出到屏幕上
+         mov	ah, 0
+	     push	ax
+	call	_outputTwo
+	     pop	ax                       ;如果输入的是小写字母，则转化为大写字母
+	     cmp	ax, 97 
+	jl	_endReadCha
+	    sub	ax, 32
+	    jmp	_endReadCha            
+_enter:                                          ;如果输入的是‘enter’，那么则打印‘\n’
+	    Mov ax, 10
+	    push	ax
+	    call	_outputTwo
+	    pop	ax
+	    mov	ax, 0
+_endReadCha:
+        pop	bp
+	    ret
+_recursion:                                      ;将10进制转化为2进制
+	    push	 bp
+	    mov	 bp, sp
+	    mov	 ax, [bp + 4]			
+	    cmp	 ax, 0
+	    je	 _end_recursion
+	    mov	 dx, ax
+	    and	 ax, 1		
+	    push  ax			
+	    shr	 dx, 1
+	    push	 dx			
+	    call	 _recursion		
+	    pop	 dx
+	    call	 _outputOne		
+	    pop	 ax 
+_end_recursion:
+	    pop	 bp
+	    ret
+
+_outputOne:                                      ;将数字打印到屏幕上
+	  push	bp
+	  mov	bp, sp
+	  mov	ax, [bp + 4]	
+	  add	al, 30H			         ;将数字转化为ASCII码
+	  mov	[bit], al
+	  lea	dx, bit                          ;调用BIOS中断，将bit输出到屏幕上
+	  mov	ah, 9
+	  int	21H
+	  pop	bp
+	  ret
+
+_outputTwo:                                      ;将字符打印到屏幕上
+	  push	bp
+	  mov	bp, sp
+	  mov	ax, [bp + 4]	
+	  mov	[bit], al
+	  lea	dx, bit                          ;调用BIOS中断，将bit输出到屏幕上
+	  mov	ah, 9
+	  int	21H
+	  pop	bp
+	  ret
+    end start
